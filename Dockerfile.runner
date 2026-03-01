@@ -1,0 +1,22 @@
+FROM stabl-node:latest
+
+USER root
+# Install necessary tools and Python dependencies
+RUN apt-get update && \
+    apt-get install -y python3-pip curl jq tzdata libjson-perl libyaml-perl && \
+    pip3 install matplotlib numpy PyMuPDF && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Add the private key for passwordless SSH to other containers
+COPY stabl_key /home/ubuntu/.ssh/id_rsa
+RUN chown ubuntu:ubuntu /home/ubuntu/.ssh/id_rsa && \
+    chmod 600 /home/ubuntu/.ssh/id_rsa
+
+# Configure SSH to not prompt for StrictHostKeyChecking
+RUN echo "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null\n\tLogLevel ERROR" > /home/ubuntu/.ssh/config && \
+    chown ubuntu:ubuntu /home/ubuntu/.ssh/config && \
+    chmod 600 /home/ubuntu/.ssh/config
+
+# Define the user
+USER ubuntu
+WORKDIR /project

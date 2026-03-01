@@ -1,0 +1,12 @@
+[submodule "diablo"]
+	path = diablo
+	url = https://github.com/ultrabababa/diablo.git
+	branch = main
+[submodule "hotstuff"]
+	path = hotstuff
+	url = https://github.com/ultrabababa/hotstuff.git
+	branch = main
+[submodule "minion"]
+	path = minion
+	url = https://github.com/ultrabababa/minion.git
+	branch = middleware25

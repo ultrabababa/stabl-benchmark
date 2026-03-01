@@ -1,0 +1,110 @@
+networks:
+  stabl_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.30.0.0/16
+
+x-node: &node
+  image: stabl-node
+  build:
+    context: .
+    dockerfile: Dockerfile
+  cap_add:
+    - NET_ADMIN
+
+services:
+  builder:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.30.2
+  chain1:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.10.1
+  chain2:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.10.2
+  chain3:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.10.3
+  chain4:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.10.4
+  chain5:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.10.5
+  chain6:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.10.6
+  chain7:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.10.7
+  chain8:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.10.8
+  chain9:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.10.9
+  chain10:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.10.10
+  client1:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.20.1
+  client2:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.20.2
+  client3:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.20.3
+  client4:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.20.4
+  client5:
+    <<: *node
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.20.5
+
+  runner:
+    image: stabl-runner
+    build:
+      context: .
+      dockerfile: Dockerfile.runner
+    networks:
+      stabl_net:
+        ipv4_address: 10.30.40.1
+    volumes:
+      - ./:/project
+    working_dir: /project
+    user: ubuntu
+    command: tail -f /dev/null
