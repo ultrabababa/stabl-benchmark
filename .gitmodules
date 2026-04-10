@@ -10,3 +10,7 @@
 	path = minion
 	url = https://github.com/ultrabababa/minion.git
 	branch = middleware25
+[submodule "asonnino-hotstuff"]
+	path = asonnino-hotstuff
+	url = https://github.com/asonnino/hotstuff.git
+	branch = main

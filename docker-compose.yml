@@ -12,6 +12,11 @@ x-node: &node
     dockerfile: Dockerfile
   cap_add:
     - NET_ADMIN
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
 
 services:
   builder:
@@ -104,7 +109,12 @@ services:
       stabl_net:
         ipv4_address: 10.30.40.1
     volumes:
-      - ./:/project
+      - ../:/project
     working_dir: /project
     user: ubuntu
     command: tail -f /dev/null
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
