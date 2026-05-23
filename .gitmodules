@@ -12,5 +12,5 @@
 	branch = middleware25
 [submodule "asonnino-hotstuff"]
 	path = asonnino-hotstuff
-	url = https://github.com/asonnino/hotstuff.git
-	branch = main
+	url = https://github.com/ultrabababa/asonnino-hotstuff.git
+	branch = silent-leader
