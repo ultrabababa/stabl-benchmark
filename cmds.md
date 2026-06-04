@@ -181,6 +181,59 @@ git ls-remote https://github.com/asdf-vm/asdf.git HEAD
 
 If that command fails, fix VM/container outbound network or retry after the network stabilizes. Do not use `--skip-build` until the first full build has completed successfully.
 
+### Use The VM Host Proxy From Containers
+
+If the VM host can access GitHub or `proxy.golang.org` only through a local proxy, the Docker containers will not automatically inherit it. A host proxy bound only to `127.0.0.1` is especially not visible from containers because container `127.0.0.1` is the container itself.
+
+First find the Docker bridge gateway visible from the builder:
+
+```bash
+GW=$(sudo docker exec stabl-benchmark-builder-1 sh -lc "ip route | awk '/default/ {print \$3}'")
+echo "$GW"
+```
+
+Use the actual container name from `sudo docker ps` if your compose project is not named `stabl-benchmark`.
+
+Make sure the proxy application on the VM host listens on LAN / `0.0.0.0`, not only `127.0.0.1`. Then test from the builder. Replace `7892` with the actual proxy port:
+
+```bash
+sudo docker exec stabl-benchmark-builder-1 bash -lc \
+  "curl -I -x http://$GW:7892 https://proxy.golang.org"
+```
+
+If that test succeeds, persist proxy variables for Minion remote scripts. `prepare-build` and the apt build helper load `~/.minion-env`, so these variables are visible even when commands are started through SSH:
+
+```bash
+sudo docker exec stabl-benchmark-builder-1 bash -lc "cat > /home/ubuntu/.minion-env <<EOF
+HTTP_PROXY=http://$GW:7892
+HTTPS_PROXY=http://$GW:7892
+http_proxy=http://$GW:7892
+https_proxy=http://$GW:7892
+NO_PROXY=localhost,127.0.0.1,10.30.0.0/16
+no_proxy=localhost,127.0.0.1,10.30.0.0/16
+GOPROXY=https://proxy.golang.org,direct
+EOF
+chown ubuntu:ubuntu /home/ubuntu/.minion-env"
+```
+
+Verify through the same SSH path used by Minion:
+
+```bash
+sudo docker exec stabl-benchmark-runner-1 ssh -T \
+  -o StrictHostKeyChecking=no \
+  -o UserKnownHostsFile=/dev/null \
+  ubuntu@10.30.30.2 \
+  '. ~/.minion-env; env | grep -i proxy; curl -I https://proxy.golang.org'
+```
+
+If Go already cached a failed toolchain download, clear it before rerunning:
+
+```bash
+sudo docker exec stabl-benchmark-builder-1 rm -rf \
+  /home/ubuntu/go/pkg/mod/cache/download/golang.org/toolchain \
+  /home/ubuntu/.cache/go-build
+```
+
 ### Fix `tar: diablo: Cannot stat`
 
 Symptom:
