@@ -234,6 +234,8 @@ sudo docker exec stabl-benchmark-builder-1 rm -rf \
   /home/ubuntu/.cache/go-build
 ```
 
+If Go reports `verifying module: checksum database disabled by GOSUMDB=off` while downloading `golang.org/toolchain`, do not use `GOSUMDB=off` as the fix. Pull the latest repo instead: `build-diablo` installs the Go version from `diablo/go.mod` so the Go command does not need to auto-download a newer toolchain.
+
 ### Fix `tar: diablo: Cannot stat`
 
 Symptom:
