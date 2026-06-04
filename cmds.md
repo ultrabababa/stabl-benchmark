@@ -181,6 +181,56 @@ git ls-remote https://github.com/asdf-vm/asdf.git HEAD
 
 If that command fails, fix VM/container outbound network or retry after the network stabilizes. Do not use `--skip-build` until the first full build has completed successfully.
 
+### Fix `tar: diablo: Cannot stat`
+
+Symptom:
+
+```text
+tar: diablo: Cannot stat: No such file or directory
+./bin/middleware: failed to create diablo-src.tar.gz
+```
+
+This means Minion could not find the `diablo` source directory while packaging build inputs. In a normal clone the sources are sibling submodules of `minion`, so the runner must see:
+
+```text
+/project/diablo
+/project/hotstuff
+/project/asonnino-hotstuff
+/project/minion
+```
+
+First pull the latest repo because `middleware` now searches both `minion/diablo` and `../diablo`:
+
+```bash
+cd ~/stabl-benchmark
+git pull
+git submodule update --init --recursive
+```
+
+Then verify the runner mount and submodules:
+
+```bash
+docker exec minion-runner-1 bash -lc '
+cd /project/minion
+pwd
+ls -ld ../diablo ../hotstuff ../asonnino-hotstuff
+'
+```
+
+If `/project/diablo` is missing, the host clone is incomplete:
+
+```bash
+cd ~/stabl-benchmark
+git submodule update --init --recursive
+```
+
+If `/project` is not the repository root, recreate the network without `--project-directory .`:
+
+```bash
+docker compose -f minion/docker-compose-n61.yml down
+docker compose -f minion/docker-compose-n61.yml up -d --no-build
+```
+
 ### Cleanup And Recreate Network
 
 ```bash
