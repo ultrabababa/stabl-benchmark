@@ -1,6 +1,6 @@
 # STABL Benchmark — HotStuff 故障注入评测
 
-这是一个已完成的 Benchmark 集成项目，用于在受控故障条件下评测现有的 2-chain HotStuff 实现。项目将 STABL / Diablo 的评测流程适配到 `asonnino-hotstuff`，区分 mempool 接收与共识提交，自动化执行本地多节点实验，并分析 crash、recovery 和 network partition 场景下的系统行为。
+这是一个基于 STABL / Diablo 的 Benchmark 集成与故障评测项目，用于在受控故障条件下评测现有的 2-chain HotStuff 实现。项目将 STABL / Diablo 的评测流程适配到 `asonnino-hotstuff`，区分 mempool 接收与共识提交，自动化执行本地多节点实验，并分析 crash、recovery 和 network partition 场景下的系统行为。
 
 > 项目边界：本项目是在已有 Benchmark / Orchestration Framework 和已有共识实现基础上进行适配与扩展，**不声称从零实现 HotStuff 或 STABL**。
 
@@ -58,6 +58,22 @@ Diablo Primary -> Diablo Secondaries
 ```
 
 这里最重要的 measurement boundary 是：一次成功的 socket write 只证明请求已经进入 **mempool admission**，并不等价于 **consensus commitment**。
+
+## 代表性评测结果
+
+### N=10 故障实验
+
+N=10 配置下对 baseline、permanent crash、recoverable crash 与 network partition 的 throughput 变化进行对照。故障注入与恢复时刻在曲线中显式标记，用于观察故障窗口内的停滞、退化以及恢复后的 catch-up 行为。
+
+![N=10 benchmark throughput](https://raw.githubusercontent.com/ultrabababa/minion/16f6a173188b2b1473ea89943777ccb4a274a0ae/stabl_paper_throughput.png)
+
+### Benchmark 对比
+
+仓库中保留的 benchmark comparison 图用于展示不同实验条件下的 throughput / latency 结果与故障影响。
+
+![Benchmark comparison](https://raw.githubusercontent.com/ultrabababa/minion/16f6a173188b2b1473ea89943777ccb4a274a0ae/benchmark_comparison.png)
+
+> 更完整的 N=10 / N=22 / N=31 / N=61 实验配置、运行命令与结果分析流程见 [`docs/RUNBOOK.md`](docs/RUNBOOK.md)。跨规模结果使用各自的 operating point，不能解读为严格的单变量 scalability ranking。
 
 ## 仓库结构与贡献边界
 
@@ -124,7 +140,3 @@ python3 analyze_results.py <result-archive.results.tar.gz>
 - workload 使用较小的 synthetic payload，不覆盖真实应用执行与 state growth；
 - 正式评测中每个 configuration 保留一条 long run，因此结果属于描述性实验观察，而不是统计估计；
 - commit observation 基于 log + HTTP bridge，polling granularity 会进入实际测得的 latency。
-
-## 项目状态
-
-项目实现与实验评测均已完成。该仓库作为最终的可复现集成与 Benchmark artifact 保留；后续仓库清理不修改正式实验数据。
