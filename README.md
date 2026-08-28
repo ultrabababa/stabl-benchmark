@@ -17,10 +17,10 @@ A completed benchmark-integration project for evaluating an existing 2-chain Hot
   - network partition using Linux `tc/netem`;
   - reproducible Docker topologies and setup files for N=10, N=22, N=31, and N=61 experiments.
 - **Analysis and visualization tooling**
-  - planned / submitted / committed / aborted accounting;
-  - unresolved interactions derived when a submitted/planned interaction has no terminal callback when collection ends;
-  - throughput, latency percentiles, completion ratios, and STABL-style latency-distribution sensitivity analysis;
-  - fault/recovery markers and cross-run plotting utilities.
+  - planned / submitted / committed / aborted / error accounting from `results.json`;
+  - committed-to-submitted and committed-to-planned completion ratios;
+  - average, P50, P90, and P99 commit latency;
+  - submitted/committed throughput over time and fault-oriented plotting utilities.
 
 The formal project evaluation also included STABL's redundant-client Byzantine Node Tolerance setup. That experiment measures the cost/behavior of the secure-client fan-out policy; it should not be read as evidence of a retained malicious-validator experiment.
 
