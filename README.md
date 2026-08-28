@@ -1,45 +1,130 @@
-# STABL/HotStuff Benchmark Environment
+# STABL Benchmark — HotStuff Fault-Injection Evaluation
 
-[English Version](#english-version)
+A completed benchmark-integration project for evaluating an existing 2-chain HotStuff implementation under controlled faults. The project adapts the STABL/Diablo workflow to `asonnino-hotstuff`, separates mempool admission from consensus commitment, automates local multi-node experiments, and analyzes behavior under crash and network-partition scenarios.
 
-这是一个基于 STABL (Simulation of Tolerant and Adversarial Blockchain Large-scale environments) 框架的实验环境，用于在受控的分布式 Docker 网络中，对基于 HotStuff 的共识协议实现进行注入故障、可扩展性及吞吐量/延迟性能的评估。
+> Scope: this project extends existing benchmarking/orchestration frameworks and an existing consensus implementation. It does **not** claim to implement HotStuff or STABL from scratch.
 
-该项目集成并编排了以下主要组件（基于 Git Submodule）：
-*   **[Minion](minion)**: 基于 Perl 的自动化部署和测试编排工具，负责处理集群调度、代码编译、网络故障注入 (`tc netem`) 以及结果收集。
-*   **[Diablo](diablo)**: 一个分布式的区块链性能测试（Benchmarking）工具，负责向网络节点分发高吞吐量的事务（Transactions）。
-*   **[HotStuff (relab)](hotstuff)**: `relab/hotstuff` 的 Go 语言实现版本，用于基线性能及基础故障模式的验证。
-*   **[asonnino-hotstuff](asonnino-hotstuff)**: DiemBFT 核心使用的 2-chain HotStuff 变体的 Rust 开源实现。
+## What was implemented
 
-## 主要特性
+- **Native Diablo adapter for `asonnino-hotstuff`**
+  - deterministic 9-byte interaction payloads;
+  - length-prefixed TCP submission to the Rust mempool;
+  - HTTP polling through a commit-status bridge;
+  - `submit` is recorded after successful mempool admission, while `commit` is reported only after matching consensus-commit evidence is observed.
+- **Fault-aware experiment lifecycle in Minion**
+  - permanent crash (`crash-no-recovery`);
+  - crash followed by recovery (`crash`);
+  - network partition using Linux `tc/netem`;
+  - reproducible Docker topologies and setup files for N=10, N=22, N=31, and N=61 experiments.
+- **Analysis and visualization tooling**
+  - planned / submitted / committed / aborted accounting;
+  - unresolved interactions derived when a submitted/planned interaction has no terminal callback when collection ends;
+  - throughput, latency percentiles, completion ratios, and STABL-style latency-distribution sensitivity analysis;
+  - fault/recovery markers and cross-run plotting utilities.
 
-1.  **自动化多节点 Docker 部署**: 利用 `docker-compose.yml` 快速拉起本地测试网络（默认 N=10，支持 N=22/31/61 等），具备 `NET_ADMIN` 权限用于网络故障模拟。
-2.  **故障注入测试 (Fault Injection)**:
-    *   `crash`: 节点崩溃并在随后恢复重启。
-    *   `crash-no-recovery`: 节点永久性崩溃（例如 $f=3$ 或 $f=4$）。
-    *   `partition`: 网络分区（100% 丢包），并在一定时间后恢复。
-    *   `byzantine` (冗余客户端): 测试安全客户端将事务广播到 $t_B+1$ 个副本的能力。
-3.  **多目标实现适配**: 提供了对 `relab/hotstuff` 和 `asonnino-hotstuff` 的支持，包含原生的 Diablo 适配器 (`nasonninohotstuff`) 以及观察者脚本 (Observer) 以对齐事务确认语义。
-4.  **性能可视化**: 提供 `plot_results.py` 等脚本处理结果压缩包，自动绘制包含故障发生点与恢复点在内的 TPS 与 Latency 折线图。
+The formal project evaluation also included STABL's redundant-client Byzantine Node Tolerance setup. That experiment measures the cost/behavior of the secure-client fan-out policy; it should not be read as evidence of a retained malicious-validator experiment.
 
----
+## System flow
 
-# English Version
+```text
+Minion orchestrator
+    |
+    +-- deploy / start / stop / collect over SSH
+    +-- schedule crash / recovery / tc-netem faults
+    |
+Diablo Primary -> Diablo Secondaries
+                     |
+                     | deterministic payload
+                     v
+              asonnino adapter
+                     |
+                     | framed TCP
+                     v
+              HotStuff mempool
+                     |
+                     v
+                 consensus
+                     |
+                     | committed-batch evidence
+                     v
+            Commit-Status Bridge
+                     |
+                     | HTTP status polling
+                     v
+              Diablo result events
+                     |
+                     v
+          analysis / plots / summaries
+```
 
-This is an experimental environment based on the STABL (Simulation of Tolerant and Adversarial Blockchain Large-scale environments) framework. It is designed to evaluate HotStuff-based consensus protocol implementations under fault injection, scalability, and throughput/latency performance within a controlled distributed Docker network.
+The important measurement boundary is deliberate: a successful socket write proves **admission**, not **consensus commitment**.
 
-This project integrates and orchestrates the following main components (via Git Submodules):
-*   **[Minion](minion)**: A Perl-based automated deployment and test orchestration tool. It handles cluster scheduling, code compilation, network fault injection (`tc netem`), and result collection.
-*   **[Diablo](diablo)**: A distributed blockchain benchmarking tool responsible for distributing high-throughput transactions to the network nodes.
-*   **[HotStuff (relab)](hotstuff)**: The Go implementation of `relab/hotstuff`, used for baseline performance and basic fault mode verification.
-*   **[asonnino-hotstuff](asonnino-hotstuff)**: The open-source Rust implementation of the 2-chain HotStuff variant used at the core of DiemBFT.
+## Repository structure and ownership boundary
 
-## Key Features
+| Path | Role | Project-specific work |
+| --- | --- | --- |
+| `minion/` | STABL experiment orchestration | deployment adapters, fault lifecycle, observer integration, scale-specific setup/compose files, analysis/plotting utilities |
+| `diablo/` | distributed workload generation | `nasonninohotstuff` adapter and commit-status integration |
+| `asonnino-hotstuff/` | existing Rust 2-chain HotStuff implementation | small benchmark/fault-enablement changes; consensus protocol itself is upstream work |
+| `hotstuff/` | existing Go HotStuff implementation | benchmark-oriented integration/fixes; protocol implementation is upstream work |
+| `docker-compose.yml` | local N=10 lab topology | chain/client/builder/runner network |
+| `docs/RUNBOOK.md` | historical experiment runbook | commands, troubleshooting notes, and recorded observations from development/evaluation |
 
-1.  **Automated Multi-Node Docker Deployment**: Quickly spins up a local test network (default N=10, supporting N=22/31/61, etc.) using `docker-compose.yml`, equipped with `NET_ADMIN` capabilities for network fault simulation.
-2.  **Fault Injection**:
-    *   `crash`: Nodes crash and subsequently recover/restart.
-    *   `crash-no-recovery`: Permanent node crashes (e.g., $f=3$ or $f=4$).
-    *   `partition`: Network partition (100% packet loss), recovering after a specific duration.
-    *   `byzantine` (redundant clients): Evaluates the ability of secure clients to broadcast transactions to $t_B+1$ replicas.
-3.  **Multi-Implementation Adaptation**: Provides support for both `relab/hotstuff` and `asonnino-hotstuff`, including native Diablo adapters (`nasonninohotstuff`) and observer scripts to align transaction confirmation semantics.
-4.  **Performance Visualization**: Includes scripts like `plot_results.py` to process result archives, automatically generating TPS and Latency line charts that highlight fault injection and recovery timelines.
+The four component directories are Git submodules and are pinned deliberately. Clone recursively so the exact integration versions are checked out.
+
+## Reproduce the local environment
+
+Prerequisites: Linux (or a Linux VM), Docker with the Compose plugin, Git, and OpenSSH client tools.
+
+```bash
+git clone --recurse-submodules https://github.com/ultrabababa/stabl-benchmark.git
+cd stabl-benchmark
+git submodule update --init --recursive
+```
+
+Generate a local SSH key pair used only inside the benchmark Docker network. Both files are intentionally ignored by Git.
+
+```bash
+ssh-keygen -t ed25519 -N '' -f stabl_key
+chmod 600 stabl_key
+```
+
+Build the images in order because the runner image is based on `stabl-node:latest`:
+
+```bash
+docker build -t stabl-node:latest -f Dockerfile .
+docker build -t stabl-runner:latest -f Dockerfile.runner .
+```
+
+Start the root N=10 topology:
+
+```bash
+docker compose up -d --no-build
+docker compose ps
+```
+
+Scaled N=22/N=31/N=61 topologies, benchmark commands, fault-run examples, troubleshooting, and analysis commands are preserved in [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
+
+Typical result analysis is performed from the Minion submodule:
+
+```bash
+cd minion
+python3 analyze_results.py <result-archive.results.tar.gz>
+```
+
+## Evaluation scope
+
+The project was used for controlled local experiments at N=10, N=22, N=31, and N=61 with scale-specific operating points. Fault runs include permanent crash, recoverable crash, and network partition; analysis focuses on delivered work, latency distribution, and the shape of recovery/degradation rather than only fault-free peak throughput.
+
+Important limitations:
+
+- experiments ran in Docker on a single host/VM rather than one physical/cloud host per validator;
+- larger committees encountered host/network capacity effects such as socket/neighbor-table pressure;
+- N=31/N=61 used a more conservative mempool-selection policy than smaller configurations, so cross-scale results are not a strict one-variable scalability benchmark;
+- the workload uses a small synthetic payload and does not model application execution or state growth;
+- the retained formal evaluation used one long run per configuration, so reported values are descriptive observations rather than statistical estimates;
+- commit observation is log/HTTP-bridge based and adds polling granularity to measured latency.
+
+## Project status
+
+The implementation and evaluation are complete. This repository is kept as the final reproducible integration/benchmark artifact; cleanup changes do not alter reported formal experiment data.
