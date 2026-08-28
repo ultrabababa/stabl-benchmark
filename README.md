@@ -61,19 +61,19 @@ Diablo Primary -> Diablo Secondaries
 
 ## 代表性评测结果
 
-### N=10 故障实验
+### N=10 Threshold Fault Suite
 
-N=10 配置下对 baseline、permanent crash、recoverable crash 与 network partition 的 throughput 变化进行对照。故障注入与恢复时刻在曲线中显式标记，用于观察故障窗口内的停滞、退化以及恢复后的 catch-up 行为。
+下图展示 N=10 配置下 baseline 与 permanent crash、recoverable crash、network partition 的 committed-throughput trace。故障注入与恢复时刻在图中显式标记，可以直接观察 fault window 内的停滞、退化以及恢复后的 catch-up 行为。
 
-![N=10 benchmark throughput](https://raw.githubusercontent.com/ultrabababa/minion/16f6a173188b2b1473ea89943777ccb4a274a0ae/stabl_paper_throughput.png)
+![N=10 Threshold Fault Suite](docs/images/n10-threshold-faults.webp)
 
-### Benchmark 对比
+### 跨规模 Permanent Crash
 
-仓库中保留的 benchmark comparison 图用于展示不同实验条件下的 throughput / latency 结果与故障影响。
+下图将 N=10 / N=22 / N=31 / N=61 在各自 operating point 下的 committed throughput / target rate 归一化，用于观察 permanent crash 后是否出现可重复的 degradation pattern。由于不同规模使用的 target TPS 与 client policy 不完全相同，这组结果用于比较 fault-response shape，而不是作为严格的单变量 scalability ranking。
 
-![Benchmark comparison](https://raw.githubusercontent.com/ultrabababa/minion/16f6a173188b2b1473ea89943777ccb4a274a0ae/benchmark_comparison.png)
+![Cross-scale Permanent Crash](docs/images/cross-scale-permanent-crash.webp)
 
-> 更完整的 N=10 / N=22 / N=31 / N=61 实验配置、运行命令与结果分析流程见 [`docs/RUNBOOK.md`](docs/RUNBOOK.md)。跨规模结果使用各自的 operating point，不能解读为严格的单变量 scalability ranking。
+> 展示图来自项目实验 evidence，仅做尺寸与格式压缩以适合 GitHub README；图中实验数据未修改。更完整的实验配置、运行命令与结果分析流程见 [`docs/RUNBOOK.md`](docs/RUNBOOK.md)。
 
 ## 仓库结构与贡献边界
 
